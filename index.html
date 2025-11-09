@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+
+
+<html lang="en">
+<head>
+  <style>
+    .robot-section video,
+    .robot-section img {
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .img-compare {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  cursor: ew-resize;
+}
+
+/* 图像样式 */
+.img-compare img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 用于显示“前图”的部分 */
+.img-compare .before {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  clip-path: inset(0 50% 0 0); /* 初始占一半 */
+}
+
+/* 滑动条样式 */
+.img-compare .handle {
+  position: absolute;
+  top: 0; left: 50%;
+  width: 2px;
+  height: 100%;
+  background: rgba(255,255,255,0.8);
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+/* 左侧文字（灰色） */
+.label-left {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  font-size: 18px;
+  color: #808080;  /* 灰色 */
+  font-weight: bold;
+  z-index: 1;
+}
+
+/* 右侧文字（灰色） */
+.label-right {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  font-size: 18px;
+  color: #808080;  /* 灰色 */
+  font-weight: bold;
+  z-index: 1;
+}
+
+  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GRADRobot: Geometry-Aware Rendering with Articulation and Diffusion">
+  <meta property="og:title" content="GRADRobot: Geometry-Aware Rendering" />
+  <meta property="og:description" content="Geometry-aware Gaussian rendering for articulated robots using diffusion." />
+  <meta property="og:image" content="static/images/GRADRobot_5.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:title" content="GRADRobot Project">
+  <meta name="twitter:description" content="Rendering articulated robots with geometry-aware Gaussian fields and diffusion refinement.">
+  <meta name="twitter:image" content="static/images/GRADRobot_5.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="keywords" content="robotics, rendering, Gaussian field, neural rendering, diffusion">
+
+  <title>GRADRobot Project</title>
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <script src="static/js/fontawesome.all.min.js" defer></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.rawgit.com/mistic100/20Twenty/master/js/jquery.twentytwenty.js"></script>
+
+</head>
+<body>
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop has-text-centered">
+        <h1 class="title is-1 publication-title">GRADRobot</h1>
+        <h2 class="subtitle is-4">Geometry-Aware Rendering with Articulation and Diffusion for Robot Modeling</h2>
+        <div class="is-size-5 publication-authors">
+          <span class="author-block">3DV Submission #420</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <video autoplay controls muted loop width="100%">
+          <source src="../introduce.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>Gaussian fields are a promising representation for robot body modeling due to their differentiability and inherently low sim-to-real gap. However, existing methods like DrRobot overlook explicit geometric constraints, leading to artifacts under novel poses or views. Directly enforcing depth and normal supervision on articulated Gaussians is unstable due to entanglement between pose deformation and 3D appearance learning. To address this, we propose a two-stage training strategy: we first learn a canonical Gaussian field in a canonical pose using dense RGB, depth, and normal supervision, establishing a geometry-aware reconstruction. We then fine-tune the Gaussian parameters jointly with a deformation network conditioned on joint angles using only RGB losses, ensuring consistent geometry and appearance across poses. To further mitigate rendering artifacts in novel poses and viewpoints, we integrate a diffusion-based refinement module. This module conditions on both the initial Gaussian renderings and the target robot skeletons, and significantly enhances visual fidelity while preserving pose accuracy. Experiments across multiple robotic platforms show that GRADRobot outperforms DrRobot by a large margin in both rendering quality (PSNR) and geometric accuracy (Chamfer Distance). Code, models, and data will be released.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Method Overview</h2>
+      <img src="static/images/GRADRobot_1.png" alt="Main pipeline">
+
+      <div class="content has-text-justified">
+        <p class="has-text-centered is-italic mt-2"> We begin with an initial 3D point set to initialize our canonical Gaussian field. After projecting and rasterizing these Gaussians, we apply photometric, depth‐distortion, and normal‐consistency losses to secure geometry. Next, a pose‐conditioned LBS network deforms the Gaussians based on joint angles and we fine‐tune both the Gaussian parameters and deformation network using RGB supervision. Finally, coarse renders and skeleton maps drive a single‐step diffusion refinement, injecting fine textures and highlights for the final high‐fidelity output.</p>
+      </div>
+      <h2 class="title is-3 has-text-centered">Results Overview</h2>
+
+      <img src="static/images/GRADRobot_2.png" alt="Comparison Image">
+      <p class="has-text-centered is-italic mt-2">GRADRobot (bottom) vs. DrRobot (top) showing finer detail and higher PSNR.</p>
+      <img src="static/images/GRADRobot_3.png" alt="3D Reconstruction">
+      <p class="has-text-centered is-italic mt-2">Error-colored point clouds highlighting tighter geometry.</p>
+    </div>
+  </section>
+
+  <section class="section hero is-light" id="contribution">
+    <div class="container is-max-desktop">
+      <div class="content">
+        <ul>
+          <li>A two-stage learning framework that separates geometry reconstruction and pose-conditioned appearance modeling.</li>
+          <li>A diffusion-based refinement module that sharpens Gaussian renderings to recover high-frequency detail.</li>
+          <li>Extensive experiments showing improved visual fidelity and geometric accuracy across multiple robot types.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Rendered Robots</h2>
+      <div class="content">
+        <!-- Begin repeated robot block -->
+        <!-- Replace ROBOT_NAME with actual name prefix -->
+        <!-- Replace TITLE with display title like "Unitree Go1" -->
+        <!-- Add more blocks as needed -->
+        <!-- Example for each robot -->
+        <!-- BEGIN ROBOT -->
+        <!-- BEGIN AUTO-GENERATED ROBOT SECTIONS -->
+        <div class="robot-section">
+          <h3 class="title is-4">Shadow Hand</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="loop_per_pose/unitree_h1_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_shadow_hand.png" alt="Ours Shadow Hand">
+                    <img class="after" src="banners/dr_robot_banner_shadow_hand.png" alt="DrRobot Shadow Hand">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="robot-section">
+          <h3 class="title is-4">Universal Robots UR5e</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/universal_robots_ur5e_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_universal_robots_ur5e.png" alt="Ours Universal Robots UR5e">
+                    <img class="after" src="banners/dr_robot_banner_universal_robots_ur5e.png" alt="DrRobot Universal Robots UR5e">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="robot-section">
+          <h3 class="title is-4">Trossen VX300S</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/trossen_vx300s_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_trossen_vx300s.png" alt="Ours Trossen VX300S">
+                    <img class="after" src="banners/dr_robot_banner_trossen_vx300s.png" alt="DrRobot Trossen VX300S">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="robot-section">
+          <h3 class="title is-4">Unitree G1</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/unitree_g1_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_unitree_g1.png" alt="Ours Unitree G1">
+                    <img class="after" src="banners/dr_robot_banner_unitree_g1.png" alt="DrRobot Unitree G1">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="robot-section">
+          <h3 class="title is-4">Unitree H1</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="loop_per_pose/unitree_h1_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_unitree_h1.png" alt="Ours Unitree H1">
+                    <img class="after" src="banners/dr_robot_banner_unitree_h1.png" alt="DrRobot Unitree H1">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        
+        <div class="robot-section">
+          <h3 class="title is-4">UFatory XArm7</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/ufactory_xarm7_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_ufactory_xarm7.png" alt="Ours UFatory XArm7">
+                    <img class="after" src="banners/dr_robot_banner_ufactory_xarm7.png" alt="DrRobot UFatory XArm7">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+
+        
+
+        
+        <div class="robot-section">
+          <h3 class="title is-4">Unitree GO1</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/unitree_go1_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_unitree_go1.png" alt="Ours Unitree GO1">
+                    <img class="after" src="banners/dr_robot_banner_unitree_go1.png" alt="DrRobot Unitree GO1">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="robot-section">
+          <h3 class="title is-4">Google Robot</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/google_robot_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_google_robot.png" alt="Ours Google Robot">
+                    <img class="after" src="banners/dr_robot_banner_google_robot.png" alt="DrRobot Google Robot">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+
+        <div class="robot-section">
+          <h3 class="title is-4">Unitree GO2</h3>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <video autoplay muted loop controls>
+                <source src="../loop_per_pose/unitree_go2_pose_conditioned_pose000_loop.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="column is-two-thirds">
+              <div class="columns is-mobile is-multiline">
+                <!-- 对比滑动区域 -->
+                <div class="column is-one-eighth">
+                  <div class="img-compare">
+                    <img class="before" src="banners/banner_unitree_go2.png" alt="Ours Unitree GO2">
+                    <img class="after" src="banners/dr_robot_banner_unitree_go2.png" alt="DrRobot Unitree GO2">
+                    <div class="handle"></div>
+                    <div class="label-left">Ours</div>
+                    <div class="label-right">Dr Robot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- END ROBOT -->
+        <!-- Dynamically render these via template or backend loop in future versions -->
+      </div>
+    </div>
+  </section>
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+            <p>GRADRobot (3DV Submission #420).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+document.querySelectorAll('.img-compare').forEach(container => {
+  const beforeImg = container.querySelector('.before');
+  const handle = container.querySelector('.handle');
+  const labelLeft = container.querySelector('.label-left');
+  const labelRight = container.querySelector('.label-right');
+  let isDragging = false;
+
+  // 更新滑块和文字的位置
+  function update(x) {
+    const rect = container.getBoundingClientRect();
+    let pos = Math.min(Math.max(x - rect.left, 0), rect.width);  // 限制在容器内
+    let pct = pos / rect.width * 98;
+    
+    // 更新前图的clip
+    beforeImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+
+    // 更新滑块的位置
+    handle.style.left = `${pct}%`;
+
+    // 更新文字的位置，保持在滑块两侧
+    labelLeft.style.left = `${pct - labelLeft.offsetWidth / 2 - 20}px`;  // 左侧文字
+    labelRight.style.right = `${(100 - pct) - labelRight.offsetWidth / 2 -40}px`;  // 右侧文字
+  }
+
+  container.addEventListener('mousedown', e => {
+    isDragging = true;
+    update(e.clientX);
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (isDragging) update(e.clientX);
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  container.addEventListener('touchstart', e => {
+    isDragging = true;
+    update(e.touches[0].clientX);
+  });
+
+  window.addEventListener('touchmove', e => {
+    if (isDragging) update(e.touches[0].clientX);
+  });
+
+  window.addEventListener('touchend', () => {
+    isDragging = false;
+  });
+});
+  </script>
+</body>
+</html>
