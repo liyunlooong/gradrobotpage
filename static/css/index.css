@@ -217,7 +217,7 @@ a:hover {
 @media screen and (min-width: 992px) {
   .robot-media {
     grid-template-columns: 1fr 1fr;
-    align-items: stretch;
+    align-items: flex-start;
   }
 }
 
