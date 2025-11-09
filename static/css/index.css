@@ -194,31 +194,53 @@ a:hover {
   width: 100%;
   border-radius: 16px;
   box-shadow: 0 10px 25px rgba(15, 35, 95, 0.1);
-}
-
-.robot-section video {
-  aspect-ratio: 1 / 1;
-  height: auto;
-  object-fit: cover;
+  display: block;
 }
 
 .robot-media {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
 
-.robot-media > div {
+.robot-video,
+.robot-comparison {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-self: start;
+}
+
+.robot-video {
+  flex: 0 0 auto;
+  gap: 0;
+  align-items: stretch;
 }
 
 @media screen and (min-width: 992px) {
   .robot-media {
-    grid-template-columns: 1fr 1fr;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .robot-video {
+    flex: 0 1 28%;
+    min-width: 190px;
+    max-width: 320px;
+  }
+
+  .robot-comparison {
+    flex: 1 1 auto;
+  }
+
+  .robot-video,
+  .robot-comparison {
+    height: 100%;
+  }
+
+  .robot-video video {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
   }
 }
 
