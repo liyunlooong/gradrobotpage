@@ -112,6 +112,7 @@ a:hover {
   color: #152040;
 }
 
+
 .section-title::after {
   content: "";
   display: block;
@@ -143,6 +144,7 @@ a:hover {
 .content-card p:last-child {
   margin-bottom: 0;
 }
+
 
 .highlight-list li {
   list-style: none;
