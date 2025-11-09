@@ -212,6 +212,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  align-self: start;
 }
 
 @media screen and (min-width: 992px) {
